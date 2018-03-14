@@ -74,6 +74,11 @@ object XGBoost extends Serializable {
     }
   }
 
+  private def removeZeroWeights(
+      denseLabeledPoints: Iterator[XGBLabeledPoint]) = {
+    denseLabeledPoints.filterNot(_.weight == 0.0f)
+  }
+
   private def fromBaseMarginsToArray(baseMargins: Iterator[Float]): Option[Array[Float]] = {
     val builder = new mutable.ArrayBuilder.ofFloat()
     var nTotal = 0
@@ -130,7 +135,7 @@ object XGBoost extends Serializable {
       rabitEnv.put("DMLC_TASK_ID", taskId)
       Rabit.init(rabitEnv)
       val watches = Watches(params,
-        removeMissingValues(labeledPoints, missing),
+        removeZeroWeights(removeMissingValues(labeledPoints, missing)),
         fromBaseMarginsToArray(baseMargins), cacheDirName)
 
       try {
