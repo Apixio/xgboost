@@ -35,6 +35,7 @@ public class Booster implements Serializable, KryoSerializable {
   // handle to the booster.
   private long handle = 0;
   private int version = 0;
+  private int bestIter = 0;
 
   /**
    * Create a new Booster with empty stage.
@@ -423,6 +424,14 @@ public class Booster implements Serializable, KryoSerializable {
 
   public void setVersion(int version) {
     this.version = version;
+  }
+
+  public int getBestIter() {
+    return this.bestIter;
+  }
+
+  public void setBestIter(int iter) {
+    this.bestIter = iter;
   }
 
   /**

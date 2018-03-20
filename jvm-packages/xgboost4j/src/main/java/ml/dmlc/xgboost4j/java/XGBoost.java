@@ -203,6 +203,15 @@ public class XGBoost {
           decreasing |= criterion[iter - shift] <= criterion[iter - shift - 1];
         }
 
+        // set the best iteration in the booster
+        float best = Float.MAX_VALUE;
+        for (int i = 0; i < iter; i++) {
+          if (criterion[i] < best) {
+            booster.setBestIter(iter);
+            best = criterion[i];
+          }
+        }
+
         if (!decreasing && earlyStoppingRound > 0) {
           Rabit.trackerPrint(String.format(
                   "early stopping after %d decreasing rounds", earlyStoppingRound));
