@@ -25,6 +25,12 @@ class XGBoostTrainingSummary private(
     val test = testObjectiveHistory.map(_.toList)
     s"XGBoostTrainingSummary(trainObjectiveHistory=$train, testObjectiveHistory=$test)"
   }
+
+  def bestIter: Int = if (testObjectiveHistory.isDefined) argMin(testObjectiveHistory.get) else 0
+
+  private def argMin(vector: Array[Float]): Int = {
+    vector.zipWithIndex.minBy(_._1)._2
+  }
 }
 
 private[xgboost4j] object XGBoostTrainingSummary {
