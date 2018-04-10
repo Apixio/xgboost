@@ -197,11 +197,11 @@ public class XGBoost {
           metrics[i][iter] = metricsOut[i];
         }
 
-        boolean decreasing = false;
+        boolean decreasing = iter < earlyStoppingRound - 1;
         int testIdx = names.indexOf("test");
         float[] criterion = metrics[testIdx>=0?testIdx:(metrics.length - 1)];
-        for (int shift = 0; shift < Math.min(iter, earlyStoppingRound) - 1; shift++) {
-          decreasing |= criterion[iter - shift] <= criterion[iter - shift - 1];
+        for (int shift = 0; shift < Math.min(iter, earlyStoppingRound); shift++) {
+          decreasing |= criterion[iter - shift] < criterion[iter - shift - 1];
         }
 
         // set the best iteration in the booster
