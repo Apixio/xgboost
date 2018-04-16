@@ -26,10 +26,14 @@ class XGBoostTrainingSummary private(
     s"XGBoostTrainingSummary(trainObjectiveHistory=$train, testObjectiveHistory=$test)"
   }
 
-  def bestIter: Int = if (testObjectiveHistory.isDefined) argMin(testObjectiveHistory.get) else 0
-
-  private def argMin(vector: Array[Float]): Int = {
-    vector.zipWithIndex.minBy(_._1)._2
+  def bestIter: Int = {
+    if (testObjectiveHistory.isDefined) {
+      // we want to avoid picking the 0 values which are presumable a result of padding
+      testObjectiveHistory.get.map(x => if (x < 0.0000001f) Float.MaxValue else x).
+        zipWithIndex.minBy(_._1)._2
+    } else {
+      0
+    }
   }
 }
 
