@@ -40,7 +40,7 @@ class XGBoostTrainingSummary private(
 private[xgboost4j] object XGBoostTrainingSummary {
   def apply(metrics: Map[String, Array[Float]]): XGBoostTrainingSummary = {
     new XGBoostTrainingSummary(
-      trainObjectiveHistory = metrics("train"),
+      trainObjectiveHistory = metrics("batch"),
       testObjectiveHistory = metrics.get("test"))
   }
 }
