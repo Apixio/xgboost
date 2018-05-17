@@ -402,10 +402,10 @@ object XGBoost extends Serializable {
       // Copies of the final booster and the corresponding metrics
       // reside in each partition of the `distributedBoostersAndMetrics`.
       // Any of them can be used to create the model.
-      val (booster, metrics) = distributedBoostersAndMetrics.first()
-      val xgboostModel = XGBoostModel(booster, isClassificationTask)
+      val boosterAndMetrics = distributedBoostersAndMetrics.collect()
+      val xgboostModel = XGBoostModel(boosterAndMetrics.head._1, isClassificationTask)
       distributedBoostersAndMetrics.unpersist(false)
-      xgboostModel.setSummary(XGBoostTrainingSummary(metrics))
+      xgboostModel.setSummary(XGBoostTrainingSummary(boosterAndMetrics.map(_._2)))
     } else {
       try {
         if (sparkJobThread.isAlive) {
