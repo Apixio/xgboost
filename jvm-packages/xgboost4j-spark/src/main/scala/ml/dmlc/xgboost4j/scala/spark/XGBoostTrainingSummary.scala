@@ -41,10 +41,11 @@ class XGBoostTrainingSummary private(
 private[xgboost4j] object XGBoostTrainingSummary {
 
   private def avg(data: Array[Array[Float]]) = {
-    val arr = data.head
+    val factor = data.length
+    val arr = data.head.map(x => x / factor)
     for (i <- Range(1, data.length)) {
       for (j <- data(i).indices) {
-        arr(j) += data(i)(j) / data.length
+        arr(j) += data(i)(j) / factor
       }
     }
     arr
@@ -52,10 +53,9 @@ private[xgboost4j] object XGBoostTrainingSummary {
 
   def apply(metrics: Array[Map[String, Array[Float]]]): XGBoostTrainingSummary = {
     new XGBoostTrainingSummary(
-      trainObjectiveHistory = avg(metrics.map(_("batch"))),
-      testObjectiveHistory =
-          if (metrics.head.get("test").isEmpty) None else Some(avg(metrics.map(_("test")))),
+      trainObjectiveHistory = metrics.head("batch"),
+      testObjectiveHistory = metrics.head.get("test"),
       evalResult =
-          if (metrics.head.get("eval").isEmpty) None else Some(avg(metrics.map(_("eval")))))
+        if (metrics.head.get("eval").isEmpty) None else Some(avg(metrics.map(_("eval")))))
   }
 }
