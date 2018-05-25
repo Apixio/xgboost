@@ -53,7 +53,7 @@ private[xgboost4j] object XGBoostTrainingSummary {
 
   def apply(metrics: Array[Map[String, Array[Float]]]): XGBoostTrainingSummary = {
     new XGBoostTrainingSummary(
-      trainObjectiveHistory = metrics.head("batch"),
+      trainObjectiveHistory = metrics.head("train"),
       testObjectiveHistory = metrics.head.get("test"),
       evalResult =
         if (metrics.head.get("eval").isEmpty) None else Some(avg(metrics.map(_("eval")))))

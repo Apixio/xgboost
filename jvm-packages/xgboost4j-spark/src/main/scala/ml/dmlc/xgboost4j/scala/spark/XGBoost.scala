@@ -484,16 +484,12 @@ private class Watches private(
   val test: DMatrix,
   private val cacheDirName: Option[String]) {
 
-  // special batch for training error
-  val batch = train.slice((0 until (train.rowNum / 10).toInt).toArray)
-
-  def toMap: Map[String, DMatrix] = Map("batch" -> batch, "test" -> test)
+  def toMap: Map[String, DMatrix] = Map("train" -> train, "test" -> test)
     .filter { case (_, matrix) => matrix.rowNum > 0 }
 
   def size: Int = toMap.size
 
   def delete(): Unit = {
-    train.delete()
     toMap.values.foreach(_.delete())
     cacheDirName.foreach { name =>
       FileUtils.deleteDirectory(new File(name))
