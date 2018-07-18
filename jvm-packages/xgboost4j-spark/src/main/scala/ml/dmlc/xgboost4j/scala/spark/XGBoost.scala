@@ -402,7 +402,7 @@ object XGBoost extends Serializable {
       // Copies of the final booster and the corresponding metrics
       // reside in each partition of the `distributedBoostersAndMetrics`.
       // Any of them can be used to create the model.
-      val boosterAndMetrics = distributedBoostersAndMetrics.collect()
+      val boosterAndMetrics = Array(distributedBoostersAndMetrics.first())
       val xgboostModel = XGBoostModel(boosterAndMetrics.head._1, isClassificationTask)
       distributedBoostersAndMetrics.unpersist(false)
       xgboostModel.setSummary(XGBoostTrainingSummary(boosterAndMetrics.map(_._2)))
