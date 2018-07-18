@@ -17,17 +17,14 @@
 package ml.dmlc.xgboost4j.scala.spark
 
 import scala.collection.JavaConverters._
-
 import ml.dmlc.xgboost4j.java.Rabit
 import ml.dmlc.xgboost4j.scala.spark.params.{BoosterParams, DefaultXGBoostParamsWriter}
 import ml.dmlc.xgboost4j.scala.{Booster, DMatrix, EvalTrait}
-
 import org.apache.hadoop.fs.{FSDataOutputStream, Path}
-
 import org.apache.spark.ml.PredictionModel
 import org.apache.spark.ml.feature.{LabeledPoint => MLLabeledPoint}
 import org.apache.spark.ml.linalg.{DenseVector => MLDenseVector, Vector => MLVector}
-import org.apache.spark.ml.param.{BooleanParam, ParamMap, Params}
+import org.apache.spark.ml.param._
 import org.apache.spark.ml.util._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
@@ -368,7 +365,9 @@ object XGBoostModel extends MLReadable[XGBoostModel] {
     override protected def saveImpl(path: String): Unit = {
       implicit val format = DefaultFormats
       implicit val sc = super.sparkSession.sparkContext
-      DefaultXGBoostParamsWriter.saveMetadata(instance, path, sc)
+      import org.json4s.JsonDSL._
+      DefaultXGBoostParamsWriter.saveMetadata(instance, path, sc,
+        extraMetadata = Some(("bestIter") -> instance.summary.bestIter))
       val dataPath = new Path(path, "data").toString
       instance.saveModelAsHadoopFile(dataPath)
     }

@@ -4,6 +4,13 @@
 // See documents at https://jenkins.io/doc/book/pipeline/jenkinsfile/
 
 // Command to run command inside a docker container
+dockerRun = 'tests/ci_build/ci_build.sh'
+
+def buildMatrix = [
+    [ "enabled": true,  "os" : "linux", "withGpu": true,  "withOmp": true, "pythonVersion": "2.7" ],
+    [ "enabled": true,  "os" : "linux", "withGpu": false, "withOmp": true, "pythonVersion": "2.7" ],
+    [ "enabled": false, "os" : "osx",   "withGpu": false, "withOmp": false, "pythonVersion": "2.7" ],
+]
 
 pipeline {
     // Each stage specify its own agent
@@ -28,19 +35,13 @@ pipeline {
             }
         }
         stage('Build & Test') {
-            agent any
             steps {
-              sh 'cd jvm-packages; mvn clean compile package'
-            }
-        }
-        stage("Publish Release from master") {
-            when {
-                expression {
-                    env.GIT_BRANCH == 'origin/master'
+                script {
+                    parallel (buildMatrix.findAll{it['enabled']}.collectEntries{ c ->
+                        def buildName = getBuildName(c)
+                        buildFactory(buildName, c)
+                    })
                 }
-            }
-            steps {
-                sh 'cd jvm-packages; mvn -DaltDeploymentRepository=apixio.releases.build::default::https://repos.apixio.com/artifactory/releases/ deploy'
             }
         }
     }

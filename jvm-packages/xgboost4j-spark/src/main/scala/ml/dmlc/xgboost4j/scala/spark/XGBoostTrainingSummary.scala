@@ -18,19 +18,44 @@ package ml.dmlc.xgboost4j.scala.spark
 
 class XGBoostTrainingSummary private(
     val trainObjectiveHistory: Array[Float],
-    val testObjectiveHistory: Option[Array[Float]]
+    val testObjectiveHistory: Option[Array[Float]],
+    val evalResult: Option[Array[Float]] = None
 ) extends Serializable {
   override def toString: String = {
     val train = trainObjectiveHistory.toList
     val test = testObjectiveHistory.map(_.toList)
     s"XGBoostTrainingSummary(trainObjectiveHistory=$train, testObjectiveHistory=$test)"
   }
+
+  def bestIter: Int = {
+    if (testObjectiveHistory.isDefined) {
+      // we want to avoid picking the 0 values which are presumable a result of padding
+      testObjectiveHistory.get.map(x => if (x < 0.0000001f) Float.MaxValue else x).
+        zipWithIndex.minBy(_._1)._2
+    } else {
+      0
+    }
+  }
 }
 
 private[xgboost4j] object XGBoostTrainingSummary {
-  def apply(metrics: Map[String, Array[Float]]): XGBoostTrainingSummary = {
+
+  private def avg(data: Array[Array[Float]]) = {
+    val factor = data.length
+    val arr = data.head.map(x => x / factor)
+    for (i <- Range(1, data.length)) {
+      for (j <- data(i).indices) {
+        arr(j) += data(i)(j) / factor
+      }
+    }
+    arr
+  }
+
+  def apply(metrics: Array[Map[String, Array[Float]]]): XGBoostTrainingSummary = {
     new XGBoostTrainingSummary(
-      trainObjectiveHistory = metrics("train"),
-      testObjectiveHistory = metrics.get("test"))
+      trainObjectiveHistory = metrics.head("train"),
+      testObjectiveHistory = metrics.head.get("test"),
+      evalResult =
+        if (metrics.head.get("eval").isEmpty) None else Some(avg(metrics.map(_("eval")))))
   }
 }
