@@ -32,11 +32,7 @@ pipeline {
             }
         }
         stage("Publish Release from master") {
-            when {
-                expression {
-                    env.GIT_BRANCH == 'origin/master'
-                }
-            }
+            when { branch "master" }
             steps {
                 sh 'cd jvm-packages; mvn -DaltDeploymentRepository=apixio.releases.build::default::https://repos.apixio.com/artifactory/releases/ deploy'
             }
