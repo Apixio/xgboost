@@ -33,6 +33,16 @@ pipeline {
               sh 'cd jvm-packages; mvn clean compile package'
             }
         }
+        stage("Publish Release from master") {
+            when {
+                expression {
+                    env.GIT_BRANCH == 'origin/master'
+                }
+            }
+            steps {
+                sh 'cd jvm-packages; mvn -DaltDeploymentRepository=apixio.releases.build::default::https://repos.apixio.com/artifactory/releases/ deploy'
+            }
+        }
     }
 }
 
