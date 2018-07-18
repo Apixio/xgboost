@@ -7,7 +7,7 @@
 
 pipeline {
     // Each stage specify its own agent
-    agent none
+    agent any
 
     // Setup common job properties
     options {
@@ -20,7 +20,6 @@ pipeline {
     // Build stages
     stages {
         stage('Get sources') {
-            agent any
             steps {
                 checkoutSrcs()
                 stash name: 'srcs', excludes: '.git/'
@@ -28,7 +27,6 @@ pipeline {
             }
         }
         stage('Build & Test') {
-            agent any
             steps {
               sh 'cd jvm-packages; mvn clean compile package'
             }
