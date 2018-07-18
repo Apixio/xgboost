@@ -30,7 +30,7 @@ pipeline {
         stage('Build & Test') {
             agent any
             steps {
-              sh 'mvn clean compile package -DaltDeploymentRepository=apixio.snapshots.build::default::https://repos.apixio.com/nexus/content/repositories/snapshots/ deploy'
+              sh 'mvn -f jvm-packages/pom.xml clean compile package -DaltDeploymentRepository=apixio.snapshots.build::default::https://repos.apixio.com/nexus/content/repositories/snapshots/ deploy'
             }
         }
     }
