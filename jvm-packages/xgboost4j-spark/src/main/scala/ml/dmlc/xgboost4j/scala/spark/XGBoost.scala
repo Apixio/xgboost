@@ -74,6 +74,11 @@ object XGBoost extends Serializable {
     }
   }
 
+  private def removeZeroWeights(
+      denseLabeledPoints: Iterator[XGBLabeledPoint]) = {
+    denseLabeledPoints.filterNot(_.weight == 0.0f)
+  }
+
   private def fromBaseMarginsToArray(baseMargins: Iterator[Float]): Option[Array[Float]] = {
     val builder = new mutable.ArrayBuilder.ofFloat()
     var nTotal = 0
@@ -130,7 +135,7 @@ object XGBoost extends Serializable {
       rabitEnv.put("DMLC_TASK_ID", taskId)
       Rabit.init(rabitEnv)
       val watches = Watches(params,
-        removeMissingValues(labeledPoints, missing),
+        removeZeroWeights(removeMissingValues(labeledPoints, missing)),
         fromBaseMarginsToArray(baseMargins), cacheDirName)
 
       try {
@@ -138,9 +143,16 @@ object XGBoost extends Serializable {
             .map(_.toString.toInt).getOrElse(0)
         val metrics = Array.tabulate(watches.size)(_ => Array.ofDim[Float](round))
         val booster = SXGBoost.train(watches.train, params, round,
-          watches.toMap, metrics, obj, eval,
+          watches.toMap, metrics, obj, null,
           earlyStoppingRound = numEarlyStoppingRounds, prevBooster)
-        Iterator(booster -> watches.toMap.keys.zip(metrics).toMap)
+        val evalResult: Map[String, Array[Float]] =
+          if (eval != null) {
+            val res = booster.evalSet(Array(watches.test), Array(eval.getMetric()), eval)
+            watches.toMap.keys.zip(metrics).toMap + ("eval" -> Array(res.split(":").last.toFloat))
+          } else {
+            watches.toMap.keys.zip(metrics).toMap
+          }
+        Iterator(booster -> evalResult)
       } finally {
         Rabit.shutdown()
         watches.delete()
@@ -390,10 +402,10 @@ object XGBoost extends Serializable {
       // Copies of the final booster and the corresponding metrics
       // reside in each partition of the `distributedBoostersAndMetrics`.
       // Any of them can be used to create the model.
-      val (booster, metrics) = distributedBoostersAndMetrics.first()
-      val xgboostModel = XGBoostModel(booster, isClassificationTask)
+      val boosterAndMetrics = Array(distributedBoostersAndMetrics.first())
+      val xgboostModel = XGBoostModel(boosterAndMetrics.head._1, isClassificationTask)
       distributedBoostersAndMetrics.unpersist(false)
-      xgboostModel.setSummary(XGBoostTrainingSummary(metrics))
+      xgboostModel.setSummary(XGBoostTrainingSummary(boosterAndMetrics.map(_._2)))
     } else {
       try {
         if (sparkJobThread.isAlive) {
