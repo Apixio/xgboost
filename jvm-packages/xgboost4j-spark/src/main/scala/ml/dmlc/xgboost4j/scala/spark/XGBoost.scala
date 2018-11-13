@@ -143,7 +143,7 @@ object XGBoost extends Serializable {
             .map(_.toString.toInt).getOrElse(0)
         val metrics = Array.tabulate(watches.size)(_ => Array.ofDim[Float](round))
         val booster = SXGBoost.train(watches.train, params, round,
-          watches.toMap, metrics, obj, null,
+          watches.toMap, metrics, obj, eval,
           earlyStoppingRound = numEarlyStoppingRounds, prevBooster)
         val evalResult: Map[String, Array[Float]] =
           if (eval != null) {
