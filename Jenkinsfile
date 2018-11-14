@@ -39,7 +39,9 @@ pipeline {
             }
         }
         stage("Publish Snapshot for testing") {
-            when { MODE "test" }
+            when {
+                expression { MODE == 'test' }
+            }
             steps {
                 sh 'cd jvm-packages; mvn -DaltDeploymentRepository=apixio.snapshots.build::default::https://repos.apixio.com/artifactory/snapshots/ deploy'
             }
