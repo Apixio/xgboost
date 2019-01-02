@@ -6,7 +6,11 @@
 
     <groupId>ml.dmlc</groupId>
     <artifactId>xgboost-jvm</artifactId>
+<<<<<<< HEAD
     <version>0.9.1</version>
+=======
+    <version>0.9</version>
+>>>>>>> master
     <packaging>pom</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -23,6 +27,21 @@
             <id>central_maven</id>
             <name>central maven</name>
             <url>https://repo1.maven.org/maven2</url>
+        </repository>
+        <repository>
+            <id>mvn_aggregator</id>
+            <name>mvn aggregator</name>
+            <url>http://mvnrepository.com/artifact/</url>
+        </repository>
+        <repository>
+            <id>GPHAT</id>
+            <name>GPHAT</name>
+            <url>https://raw.github.com/gphat/mvn-repo/master/releases/</url>
+        </repository>
+        <repository>
+            <id>JBig2</id>
+            <name>JBig2</name>
+            <url>http://jbig2-imageio.googlecode.com/svn/maven-repository</url>
         </repository>
     </repositories>
     <modules>
@@ -225,7 +244,7 @@
         <dependency>
             <groupId>com.esotericsoftware.kryo</groupId>
             <artifactId>kryo</artifactId>
-            <version>2.21</version>
+            <version>2.24.0</version>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
