@@ -5,6 +5,7 @@
 
 // Command to run command inside a docker container
 
+def MODE = "prod" // change to "test" to enable publishing to snapshots
 pipeline {
     // Each stage specify its own agent
     agent any
@@ -35,6 +36,14 @@ pipeline {
             when { branch "master" }
             steps {
                 sh 'cd jvm-packages; mvn -DaltDeploymentRepository=apixio.releases.build::default::https://repos.apixio.com/artifactory/releases/ deploy'
+            }
+        }
+        stage("Publish Snapshot for testing") {
+            when {
+                expression { MODE == 'test' }
+            }
+            steps {
+                sh 'cd jvm-packages; mvn -DaltDeploymentRepository=apixio.snapshots.build::default::https://repos.apixio.com/artifactory/snapshots/ deploy'
             }
         }
     }
