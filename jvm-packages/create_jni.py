@@ -19,7 +19,7 @@ CONFIG = {
     "USE_AZURE": "OFF",
     "USE_S3": "OFF",
 
-    "PLUGIN_UPDATER_GPU": "OFF",
+    "USE_CUDA": "OFF",
     "JVM_BINDINGS": "ON"
 }
 
@@ -85,8 +85,8 @@ if __name__ == "__main__":
                 maybe_generator = ""
 
             args = ["-D{0}:BOOL={1}".format(k, v) for k, v in CONFIG.items()]
-            run("cmake3 .. " + " ".join(args) + maybe_generator)
-            run("cmake3 --build . --config Release")
+            run("cmake .. " + " ".join(args) + maybe_generator)
+            run("cmake --build . --config Release")
 
         with cd("demo/regression"):
             run(sys.executable + " mapfeat.py")

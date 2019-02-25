@@ -139,7 +139,7 @@ public class BoosterImplTest {
   }
 
   private static class IncreasingEval implements IEvaluation {
-    private int value = 0;
+    private int value = 1;
 
     @Override
     public String getMetric() {
@@ -153,15 +153,201 @@ public class BoosterImplTest {
   }
 
   @Test
-  public void testBoosterEarlyStop() throws XGBoostError, IOException {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
-    // testBoosterWithFastHistogram(trainMat, testMat);
+  public void testDescendMetricsWithBoundaryCondition() {
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 3);
         put("silent", 1);
         put("objective", "binary:logistic");
+        put("maximize_evaluation_metrics", "false");
+      }
+    };
+    int totalIterations = 10;
+    int earlyStoppingRounds = 10;
+    float[][] metrics = new float[1][totalIterations];
+    for (int i = 0; i < totalIterations; i++) {
+      metrics[0][i] = i;
+    }
+    for (int itr = 0; itr < totalIterations; itr++) {
+      boolean onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics,
+              itr);
+      if (itr == totalIterations - 1) {
+        TestCase.assertFalse(onTrack);
+        for (int i = 0; i < totalIterations; i++) {
+          metrics[0][i] = totalIterations - i;
+        }
+        onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics,
+                totalIterations - 1);
+        TestCase.assertTrue(onTrack);
+      } else {
+        TestCase.assertTrue(onTrack);
+      }
+    }
+  }
+
+  @Test
+  public void testEarlyStoppingForMultipleMetrics() {
+    Map<String, Object> paramMap = new HashMap<String, Object>() {
+      {
+        put("max_depth", 3);
+        put("silent", 1);
+        put("objective", "binary:logistic");
+        put("maximize_evaluation_metrics", "true");
+      }
+    };
+    int earlyStoppingRound = 3;
+    int totalIterations = 5;
+    int numOfMetrics = 3;
+    float[][] metrics = new float[numOfMetrics][totalIterations];
+    for (int i = 0; i < numOfMetrics; i++) {
+      for (int j = 0; j < totalIterations; j++) {
+        metrics[0][j] = j;
+      }
+    }
+    for (int i = 0; i < totalIterations; i++) {
+      boolean onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRound, metrics, i);
+      TestCase.assertTrue(onTrack);
+    }
+    for (int i = 0; i < totalIterations; i++) {
+      metrics[0][i] = totalIterations - i;
+    }
+    // when we have multiple datasets, the training metrics is not considered
+    for (int i = 0; i < totalIterations; i++) {
+      boolean onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRound, metrics, i);
+      TestCase.assertTrue(onTrack);
+    }
+    for (int i = 0; i < totalIterations; i++) {
+      metrics[1][i] = totalIterations - i;
+    }
+    for (int i = 0; i < totalIterations; i++) {
+      // if any metrics off, we need to stop
+      boolean onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRound, metrics, i);
+      if (i >= earlyStoppingRound - 1) {
+        TestCase.assertFalse(onTrack);
+      } else {
+        TestCase.assertTrue(onTrack);
+      }
+    }
+  }
+
+  @Test
+  public void testDescendMetrics() {
+    Map<String, Object> paramMap = new HashMap<String, Object>() {
+      {
+        put("max_depth", 3);
+        put("silent", 1);
+        put("objective", "binary:logistic");
+        put("maximize_evaluation_metrics", "false");
+      }
+    };
+    int totalIterations = 10;
+    int earlyStoppingRounds = 5;
+    float[][] metrics = new float[1][totalIterations];
+    for (int i = 0; i < totalIterations; i++) {
+      metrics[0][i] = i;
+    }
+    boolean onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics,
+            totalIterations - 1);
+    TestCase.assertFalse(onTrack);
+    for (int i = 0; i < totalIterations; i++) {
+      metrics[0][i] = totalIterations - i;
+    }
+    onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics,
+            totalIterations - 1);
+    TestCase.assertTrue(onTrack);
+    for (int i = 0; i < totalIterations; i++) {
+      metrics[0][i] = totalIterations - i;
+    }
+    metrics[0][5] = 1;
+    metrics[0][6] = 2;
+    metrics[0][7] = 3;
+    metrics[0][8] = 4;
+    metrics[0][9] = 1;
+    onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics,
+            totalIterations - 1);
+    TestCase.assertTrue(onTrack);
+  }
+
+  @Test
+  public void testAscendMetricsWithBoundaryCondition() {
+    Map<String, Object> paramMap = new HashMap<String, Object>() {
+      {
+        put("max_depth", 3);
+        put("silent", 1);
+        put("objective", "binary:logistic");
+        put("maximize_evaluation_metrics", "true");
+      }
+    };
+    int totalIterations = 10;
+    int earlyStoppingRounds = 10;
+    float[][] metrics = new float[1][totalIterations];
+    for (int iter = 0; iter < totalIterations; iter++) {
+      if (iter == totalIterations - 1) {
+        for (int i = 0; i < totalIterations; i++) {
+          metrics[0][i] = i;
+        }
+        boolean onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics, iter);
+        TestCase.assertTrue(onTrack);
+        for (int i = 0; i < totalIterations; i++) {
+          metrics[0][i] = totalIterations - i;
+        }
+        onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics, iter);
+        TestCase.assertFalse(onTrack);
+      } else {
+        for (int i = 0; i < totalIterations; i++) {
+          metrics[0][i] = totalIterations - i;
+        }
+        boolean onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics, iter);
+        TestCase.assertTrue(onTrack);
+      }
+    }
+  }
+
+  @Test
+  public void testAscendMetrics() {
+    Map<String, Object> paramMap = new HashMap<String, Object>() {
+      {
+        put("max_depth", 3);
+        put("silent", 1);
+        put("objective", "binary:logistic");
+        put("maximize_evaluation_metrics", "true");
+      }
+    };
+    int totalIterations = 10;
+    int earlyStoppingRounds = 5;
+    float[][] metrics = new float[1][totalIterations];
+    for (int i = 0; i < totalIterations; i++) {
+      metrics[0][i] = i;
+    }
+    boolean onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics, totalIterations - 1);
+    TestCase.assertTrue(onTrack);
+    for (int i = 0; i < totalIterations; i++) {
+      metrics[0][i] = totalIterations - i;
+    }
+    onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics, totalIterations - 1);
+    TestCase.assertFalse(onTrack);
+    for (int i = 0; i < totalIterations; i++) {
+      metrics[0][i] = i;
+    }
+    metrics[0][5] = 9;
+    metrics[0][6] = 8;
+    metrics[0][7] = 7;
+    metrics[0][8] = 6;
+    metrics[0][9] = 9;
+    onTrack = XGBoost.judgeIfTrainingOnTrack(paramMap, earlyStoppingRounds, metrics, totalIterations - 1);
+    TestCase.assertTrue(onTrack);
+  }
+
+  @Test
+  public void testBoosterEarlyStop() throws XGBoostError, IOException {
+    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
+    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    Map<String, Object> paramMap = new HashMap<String, Object>() {
+      {
+        put("max_depth", 3);
+        put("silent", 1);
+        put("objective", "binary:logistic");
+        put("maximize_evaluation_metrics", "false");
       }
     };
     Map<String, DMatrix> watches = new LinkedHashMap<>();
@@ -176,39 +362,39 @@ public class BoosterImplTest {
 
     // Make sure we've stopped early.
     for (int w = 0; w < watches.size(); w++) {
+      for (int r = 0; r < earlyStoppingRound; r++) {
+        TestCase.assertFalse(0.0f == metrics[w][r]);
+      }
+    }
+
+    for (int w = 0; w < watches.size(); w++) {
       for (int r = earlyStoppingRound; r < round; r++) {
         TestCase.assertEquals(0.0f, metrics[w][r]);
       }
     }
-    // Make sure we've not stopped too early
-    for (int w = 0; w < watches.size(); w++) {
-      for (int r = 0; r < earlyStoppingRound; r++) {
-        TestCase.assertNotSame(0.0f, metrics[w][r]);
-      }
-    }
   }
 
-  private void testWithFastHisto(DMatrix trainingSet, Map<String, DMatrix> watches, int round,
+  private void testWithQuantileHisto(DMatrix trainingSet, Map<String, DMatrix> watches, int round,
                                       Map<String, Object> paramMap, float threshold) throws XGBoostError {
     float[][] metrics = new float[watches.size()][round];
     Booster booster = XGBoost.train(trainingSet, paramMap, round, watches,
             metrics, null, null, 0);
     for (int i = 0; i < metrics.length; i++)
       for (int j = 1; j < metrics[i].length; j++) {
-        TestCase.assertTrue(metrics[i][j] >= metrics[i][j - 1]);
+        TestCase.assertTrue(metrics[i][j] >= metrics[i][j - 1] ||
+                Math.abs(metrics[i][j] - metrics[i][j - 1]) < 0.1);
       }
     for (int i = 0; i < metrics.length; i++)
       for (int j = 0; j < metrics[i].length; j++) {
-      TestCase.assertTrue(metrics[i][j] >= threshold);
+        TestCase.assertTrue(metrics[i][j] >= threshold);
       }
     booster.dispose();
   }
 
   @Test
-  public void testFastHistoDepthWise() throws XGBoostError {
+  public void testQuantileHistoDepthWise() throws XGBoostError {
     DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
     DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
-    // testBoosterWithFastHistogram(trainMat, testMat);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 3);
@@ -222,14 +408,13 @@ public class BoosterImplTest {
     Map<String, DMatrix> watches = new HashMap<>();
     watches.put("training", trainMat);
     watches.put("test", testMat);
-    testWithFastHisto(trainMat, watches, 10, paramMap, 0.0f);
+    testWithQuantileHisto(trainMat, watches, 10, paramMap, 0.95f);
   }
 
   @Test
-  public void testFastHistoLossGuide() throws XGBoostError {
+  public void testQuantileHistoLossGuide() throws XGBoostError {
     DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
     DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
-    // testBoosterWithFastHistogram(trainMat, testMat);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 0);
@@ -244,14 +429,13 @@ public class BoosterImplTest {
     Map<String, DMatrix> watches = new HashMap<>();
     watches.put("training", trainMat);
     watches.put("test", testMat);
-    testWithFastHisto(trainMat, watches, 10, paramMap, 0.0f);
+    testWithQuantileHisto(trainMat, watches, 10, paramMap, 0.95f);
   }
 
   @Test
-  public void testFastHistoLossGuideMaxBin() throws XGBoostError {
+  public void testQuantileHistoLossGuideMaxBin() throws XGBoostError {
     DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
     DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
-    // testBoosterWithFastHistogram(trainMat, testMat);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 0);
@@ -266,7 +450,7 @@ public class BoosterImplTest {
     };
     Map<String, DMatrix> watches = new HashMap<>();
     watches.put("training", trainMat);
-    testWithFastHisto(trainMat, watches, 10, paramMap, 0.0f);
+    testWithQuantileHisto(trainMat, watches, 10, paramMap, 0.95f);
   }
 
   @Test
@@ -277,41 +461,102 @@ public class BoosterImplTest {
     Booster booster = trainBooster(trainMat, testMat);
     String[] dump = booster.getModelDump("", false, "json");
     TestCase.assertEquals("  { \"nodeid\":", dump[0].substring(0, 13));
+
+    // test with specified feature names
+    String[] featureNames = new String[126];
+    for(int i = 0; i < 126; i++) featureNames[i] = "test_feature_name_" + i;
+    dump = booster.getModelDump(featureNames, false, "json");
+    TestCase.assertTrue(dump[0].contains("test_feature_name_"));
   }
 
   @Test
-  public void testFastHistoDepthwiseMaxDepth() throws XGBoostError {
+  public void testGetFeatureScore() throws XGBoostError {
     DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
     DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
-    // testBoosterWithFastHistogram(trainMat, testMat);
+
+    Booster booster = trainBooster(trainMat, testMat);
+    String[] featureNames = new String[126];
+    for(int i = 0; i < 126; i++) featureNames[i] = "test_feature_name_" + i;
+    Map<String, Integer> scoreMap = booster.getFeatureScore(featureNames);
+    for (String fName: scoreMap.keySet()) TestCase.assertTrue(fName.startsWith("test_feature_name_"));
+  }
+
+  @Test
+  public void testGetFeatureImportanceGain() throws XGBoostError {
+    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
+    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+
+    Booster booster = trainBooster(trainMat, testMat);
+    String[] featureNames = new String[126];
+    for(int i = 0; i < 126; i++) featureNames[i] = "test_feature_name_" + i;
+    Map<String, Double> scoreMap = booster.getScore(featureNames, "gain");
+    for (String fName: scoreMap.keySet()) TestCase.assertTrue(fName.startsWith("test_feature_name_"));
+  }
+
+  @Test
+  public void testGetFeatureImportanceTotalGain() throws XGBoostError {
+    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
+    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+
+    Booster booster = trainBooster(trainMat, testMat);
+    String[] featureNames = new String[126];
+    for(int i = 0; i < 126; i++) featureNames[i] = "test_feature_name_" + i;
+    Map<String, Double> scoreMap = booster.getScore(featureNames, "total_gain");
+    for (String fName: scoreMap.keySet()) TestCase.assertTrue(fName.startsWith("test_feature_name_"));
+  }
+
+  @Test
+  public void testGetFeatureImportanceCover() throws XGBoostError {
+    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
+    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+
+    Booster booster = trainBooster(trainMat, testMat);
+    String[] featureNames = new String[126];
+    for(int i = 0; i < 126; i++) featureNames[i] = "test_feature_name_" + i;
+    Map<String, Double> scoreMap = booster.getScore(featureNames, "cover");
+    for (String fName: scoreMap.keySet()) TestCase.assertTrue(fName.startsWith("test_feature_name_"));
+  }
+
+  @Test
+  public void testGetFeatureImportanceTotalCover() throws XGBoostError {
+    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
+    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+
+    Booster booster = trainBooster(trainMat, testMat);
+    String[] featureNames = new String[126];
+    for(int i = 0; i < 126; i++) featureNames[i] = "test_feature_name_" + i;
+    Map<String, Double> scoreMap = booster.getScore(featureNames, "total_cover");
+    for (String fName: scoreMap.keySet()) TestCase.assertTrue(fName.startsWith("test_feature_name_"));
+  }
+
+  @Test
+  public void testQuantileHistoDepthwiseMaxDepth() throws XGBoostError {
+    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 3);
         put("silent", 1);
         put("objective", "binary:logistic");
         put("tree_method", "hist");
-        put("max_depth", 2);
         put("grow_policy", "depthwise");
         put("eval_metric", "auc");
       }
     };
     Map<String, DMatrix> watches = new HashMap<>();
     watches.put("training", trainMat);
-    testWithFastHisto(trainMat, watches, 10, paramMap, 0.85f);
+    testWithQuantileHisto(trainMat, watches, 10, paramMap, 0.95f);
   }
 
   @Test
-  public void testFastHistoDepthwiseMaxDepthMaxBin() throws XGBoostError {
+  public void testQuantileHistoDepthwiseMaxDepthMaxBin() throws XGBoostError {
     DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
     DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
-    // testBoosterWithFastHistogram(trainMat, testMat);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 3);
         put("silent", 1);
         put("objective", "binary:logistic");
         put("tree_method", "hist");
-        put("max_depth", 2);
         put("max_bin", 2);
         put("grow_policy", "depthwise");
         put("eval_metric", "auc");
@@ -319,7 +564,7 @@ public class BoosterImplTest {
     };
     Map<String, DMatrix> watches = new HashMap<>();
     watches.put("training", trainMat);
-    testWithFastHisto(trainMat, watches, 10, paramMap, 0.85f);
+    testWithQuantileHisto(trainMat, watches, 10, paramMap, 0.95f);
   }
 
   /**
