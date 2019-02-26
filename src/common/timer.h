@@ -7,15 +7,16 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include <vector>
+
+#include "common.h"
 
 namespace xgboost {
 namespace common {
 struct Timer {
-  typedef std::chrono::high_resolution_clock ClockT;
-  typedef std::chrono::high_resolution_clock::time_point TimePointT;
-  typedef std::chrono::high_resolution_clock::duration DurationT;
-  typedef std::chrono::duration<double> SecondsT;
+  using ClockT = std::chrono::high_resolution_clock;
+  using TimePointT = std::chrono::high_resolution_clock::time_point;
+  using DurationT = std::chrono::high_resolution_clock::duration;
+  using SecondsT = std::chrono::duration<double>;
 
   TimePointT start;
   DurationT elapsed;
@@ -44,46 +45,60 @@ struct Timer {
  */
 
 struct Monitor {
-  bool debug_verbose = false;
+  struct Statistics {
+    Timer timer;
+    size_t count{0};
+  };
   std::string label = "";
-  std::map<std::string, Timer> timer_map;
+  std::map<std::string, Statistics> statistics_map;
   Timer self_timer;
 
+ public:
   Monitor() { self_timer.Start(); }
 
   ~Monitor() {
-    if (!debug_verbose) return;
+    if (!ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) return;
 
     LOG(CONSOLE) << "======== Monitor: " << label << " ========";
-    for (auto &kv : timer_map) {
-      kv.second.PrintElapsed(kv.first);
+    for (auto &kv : statistics_map) {
+      LOG(CONSOLE) << kv.first << ": " << kv.second.timer.ElapsedSeconds()
+                   << "s, " << kv.second.count << " calls @ "
+                   << std::chrono::duration_cast<std::chrono::microseconds>(
+                          kv.second.timer.elapsed / kv.second.count)
+                          .count()
+                   << "us";
     }
     self_timer.Stop();
-    self_timer.PrintElapsed(label + " Lifetime");
   }
-  void Init(std::string label, bool debug_verbose) {
-    this->debug_verbose = debug_verbose;
+  void Init(std::string label) {
     this->label = label;
   }
-  void Start(const std::string &name) { timer_map[name].Start(); }
-  void Start(const std::string &name, std::vector<int> dList) {
-    if (debug_verbose) {
+  void Start(const std::string &name) { statistics_map[name].timer.Start(); }
+  void Start(const std::string &name, GPUSet devices) {
+    if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
 #ifdef __CUDACC__
-#include "device_helpers.cuh"
-      dh::synchronize_n_devices(dList.size(), dList);
-#endif
+      for (auto device : devices) {
+        cudaSetDevice(device);
+        cudaDeviceSynchronize();
+      }
+#endif  // __CUDACC__
     }
-    timer_map[name].Start();
+    statistics_map[name].timer.Start();
   }
-  void Stop(const std::string &name) { timer_map[name].Stop(); }
-  void Stop(const std::string &name, std::vector<int> dList) {
-    if (debug_verbose) {
+  void Stop(const std::string &name) {
+    statistics_map[name].timer.Stop();
+    statistics_map[name].count++;
+  }
+  void Stop(const std::string &name, GPUSet devices) {
+    if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
 #ifdef __CUDACC__
-#include "device_helpers.cuh"
-      dh::synchronize_n_devices(dList.size(), dList);
-#endif
+      for (auto device : devices) {
+        cudaSetDevice(device);
+        cudaDeviceSynchronize();
+      }
+#endif  // __CUDACC__
     }
-    timer_map[name].Stop();
+    this->Stop(name);
   }
 };
 }  // namespace common
