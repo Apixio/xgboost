@@ -44,7 +44,8 @@ pipeline {
             }
         }
         stage('Jenkins: Build & Test') {
-            agent {	
+            agent {
+                any
               }
             steps {
                 script {
