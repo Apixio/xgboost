@@ -35,7 +35,7 @@ pipeline {
         stage("Publish Release from master") {
             when { branch "master" }
             steps {
-                sh 'cd jvm-packages; mvn -DaltDeploymentRepository=apixio.releases.build::default::https://repos.apixio.com/artifactory/releases/ deploy'
+                sh 'cd jvm-packages; mvn -DskipTests -DaltDeploymentRepository=apixio.releases.build::default::https://repos.apixio.com/artifactory/releases/ deploy'
             }
         }
         stage("Publish Snapshot for testing") {
@@ -43,7 +43,7 @@ pipeline {
                 expression { MODE == 'test' }
             }
             steps {
-                sh 'cd jvm-packages; mvn -DaltDeploymentRepository=apixio.snapshots.build::default::https://repos.apixio.com/artifactory/snapshots/ deploy'
+                sh 'cd jvm-packages; mvn -DskipTests -DaltDeploymentRepository=apixio.snapshots.build::default::https://repos.apixio.com/artifactory/snapshots/ deploy'
             }
         }
     }
