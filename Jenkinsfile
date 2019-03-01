@@ -34,6 +34,9 @@ pipeline {
     // Build stages
     stages {
         stage('Jenkins: Get sources') {
+            agent {
+                label 'unrestricted'
+              }
             steps {
                 script {
                     utils = load('tests/ci_build/jenkins_tools.Groovy')
@@ -44,9 +47,6 @@ pipeline {
             }
         }
         stage('Jenkins: Build & Test') {
-            agent {
-                label 'unrestricted'
-              }
             steps {
                 script {
                     parallel (buildMatrix.findAll{it['enabled']}.collectEntries{ c ->
