@@ -21,7 +21,7 @@ def buildMatrix = [
 ]
 
 pipeline {
-    agent none
+    agent any
 
     // Setup common job properties
     options {
