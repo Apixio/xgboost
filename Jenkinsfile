@@ -35,7 +35,7 @@ pipeline {
     stages {
         stage('Jenkins: Get sources') {
             agent {
-                label 'unrestricted'
+                label 'master'
               }
             steps {
                 script {
