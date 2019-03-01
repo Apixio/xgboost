@@ -29,7 +29,7 @@ pipeline {
         }
         stage('Build & Test') {
             steps {
-              sh 'cd jvm-packages; mvn clean compile package'
+              sh 'cd jvm-packages; mvn clean compile -Dmaven.test.skip=true package'
             }
         }
         stage("Publish Release from master") {
