@@ -45,7 +45,7 @@ pipeline {
         }
         stage('Jenkins: Build & Test') {
             agent {
-                label none
+                label 'unrestricted'
               }
             steps {
                 script {
