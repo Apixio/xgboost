@@ -21,8 +21,7 @@ def buildMatrix = [
 ]
 
 pipeline {
-    // Each stage specify its own agent
-    agent none
+  
 
     // Setup common job properties
     options {
@@ -35,9 +34,6 @@ pipeline {
     // Build stages
     stages {
         stage('Jenkins: Get sources') {
-            agent {
-                label 'unrestricted'
-            }
             steps {
                 script {
                     utils = load('tests/ci_build/jenkins_tools.Groovy')
