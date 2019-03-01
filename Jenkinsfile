@@ -21,7 +21,7 @@ def buildMatrix = [
 ]
 
 pipeline {
-    agent any
+    agent none
 
     // Setup common job properties
     options {
@@ -45,7 +45,7 @@ pipeline {
         }
         stage('Jenkins: Build & Test') {
             agent {
-                any
+                label none
               }
             steps {
                 script {
