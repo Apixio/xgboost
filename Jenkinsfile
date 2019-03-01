@@ -44,6 +44,8 @@ pipeline {
             }
         }
         stage('Jenkins: Build & Test') {
+            agent {	
+              }
             steps {
                 script {
                     parallel (buildMatrix.findAll{it['enabled']}.collectEntries{ c ->
